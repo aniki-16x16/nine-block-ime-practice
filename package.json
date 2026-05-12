@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "cap:sync": "npx cap sync android",
-    "android:build:release": "cd android && gradlew.bat assembleRelease bundleRelease"
+    "android:build:debug": "cd android && gradlew.bat assembleDebug"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.3",

@@ -17,7 +17,7 @@ on:
 
 jobs:
   android:
-    name: Build APK and AAB
+    name: Build Debug APK
     runs-on: ubuntu-latest
 
     steps:
@@ -53,22 +53,15 @@ jobs:
       - name: Sync Capacitor Android project
         run: npm run cap:sync
 
-      - name: Build Android release artifacts
+      - name: Build Android debug artifact
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleRelease bundleRelease
+          ./gradlew --no-daemon assembleDebug
 
-      - name: Upload APK artifact
+      - name: Upload debug APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk-release
-          path: android/app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
-
-      - name: Upload AAB artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-aab-release
-          path: android/app/build/outputs/bundle/release/*.aab
+          name: android-apk-debug
+          path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
