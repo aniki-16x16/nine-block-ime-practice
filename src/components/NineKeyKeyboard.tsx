@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { NINE_KEYS } from "../utils/nineKey";
 import { cx } from "../utils/className";
 
@@ -13,12 +14,35 @@ const keyByDigit = new Map(NINE_KEYS.map((key) => [key.digit, key]));
 const cellClass =
   "min-h-16 rounded-lg border border-slate-300 bg-white text-slate-900 shadow-sm transition hover:border-sky-400 hover:bg-sky-50 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-45 sm:min-h-20";
 
+const keySoundSources = [
+  "/soun1.mp3",
+  "/soun2.mp3",
+  "/soun3.mp3",
+  "/soun4.mp3",
+  "/soun5.mp3",
+];
+
 export function NineKeyKeyboard({
   disabled = false,
   onDigitPress,
   onBackspace,
   onSpace,
 }: NineKeyKeyboardProps) {
+  const playRandomKeySound = useCallback(() => {
+    const sourceIndex = Math.floor(Math.random() * keySoundSources.length);
+    const audio = new Audio(keySoundSources[sourceIndex]);
+    audio.volume = 0.65;
+    void audio.play().catch(() => undefined);
+  }, []);
+
+  const handleKeyboardPress = useCallback(
+    (action: () => void) => {
+      playRandomKeySound();
+      action();
+    },
+    [playRandomKeySound],
+  );
+
   const renderDigit = (digit: string) => {
     const key = keyByDigit.get(digit);
 
@@ -32,7 +56,7 @@ export function NineKeyKeyboard({
         aria-label={key.letters ? `${key.letters} 键` : "空白键位"}
         disabled={disabled || !key.enabled}
         key={digit}
-        onClick={() => onDigitPress(digit)}
+        onClick={() => handleKeyboardPress(() => onDigitPress(digit))}
         type="button"
       >
         {key.letters && (
@@ -63,7 +87,7 @@ export function NineKeyKeyboard({
         aria-label="退格"
         className={cx(cellClass, "text-3xl font-black")}
         disabled={disabled}
-        onClick={onBackspace}
+        onClick={() => handleKeyboardPress(onBackspace)}
         type="button"
       >
         ⌫
@@ -85,7 +109,7 @@ export function NineKeyKeyboard({
           "col-span-3 px-3 text-base font-black text-slate-700",
         )}
         disabled={disabled}
-        onClick={onSpace}
+        onClick={() => handleKeyboardPress(onSpace)}
         type="button"
       >
         空格

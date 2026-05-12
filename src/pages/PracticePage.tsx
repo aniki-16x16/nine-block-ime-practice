@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { NineKeyKeyboard } from "../components/NineKeyKeyboard";
 import { LESSONS } from "../data/lessons";
@@ -7,6 +7,7 @@ import { formatDuration } from "../utils/nineKey";
 import {
   createPracticeTokens,
   getFirstTokenIndexAfterItem,
+  getPreviousTokenIndexInItem,
 } from "../utils/practice";
 import type { PracticeToken, TokenResult } from "../utils/practice";
 import { cx } from "../utils/className";
@@ -28,6 +29,21 @@ type RunStats = {
 
 type FeedbackTone = "idle" | "good" | "bad" | "done";
 
+const createPracticeQueue = (items: TrainingItem[], runId: number) => {
+  void runId;
+
+  if (items.length <= 1) {
+    return items;
+  }
+
+  return Array.from({ length: items.length }, () => {
+    const itemIndex = Math.floor(Math.random() * items.length);
+    return items[itemIndex];
+  });
+};
+
+const getTokenElementId = (tokenId: string) => `practice-token-${tokenId}`;
+
 export function PracticePage({
   onCompleteLesson,
   onRecordAttempt,
@@ -37,9 +53,14 @@ export function PracticePage({
     () => LESSONS.find((lessonItem) => lessonItem.id === lessonId),
     [lessonId],
   );
+  const [runId, setRunId] = useState(0);
+  const practiceItems = useMemo(
+    () => (lesson ? createPracticeQueue(lesson.items, runId) : []),
+    [lesson, runId],
+  );
   const tokens = useMemo(
-    () => (lesson ? createPracticeTokens(lesson.items, lesson.mode) : []),
-    [lesson],
+    () => (lesson ? createPracticeTokens(practiceItems, lesson.mode) : []),
+    [lesson, practiceItems],
   );
   const [currentTokenIndex, setCurrentTokenIndex] = useState(0);
   const [typedValue, setTypedValue] = useState("");
@@ -59,7 +80,7 @@ export function PracticePage({
   const runStartedAtRef = useRef(0);
   const itemStartedAtRef = useRef(0);
   const currentItemHasMistakeRef = useRef(false);
-  const completedItemIdsRef = useRef(new Set<string>());
+  const completedItemIndicesRef = useRef(new Set<number>());
 
   const activeToken = tokens[currentTokenIndex];
   const completedTokenCount = Object.keys(tokenResults).length;
@@ -73,11 +94,23 @@ export function PracticePage({
       return [];
     }
 
-    return lesson.items.map((item, itemIndex) => ({
+    return practiceItems.map((item, itemIndex) => ({
       item,
       tokens: tokens.filter((token) => token.itemIndex === itemIndex),
     }));
-  }, [lesson, tokens]);
+  }, [lesson, practiceItems, tokens]);
+
+  useEffect(() => {
+    if (!activeToken || isRunComplete) {
+      return;
+    }
+
+    document.getElementById(getTokenElementId(activeToken.id))?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [activeToken, isRunComplete]);
 
   const ensureTimers = useCallback(() => {
     const now = performance.now();
@@ -103,10 +136,11 @@ export function PracticePage({
     setFeedback({ tone: "idle", text: "准备" });
     setIsRunComplete(false);
     setCompletedElapsedMs(0);
+    setRunId((currentRunId) => currentRunId + 1);
     runStartedAtRef.current = now;
     itemStartedAtRef.current = now;
     currentItemHasMistakeRef.current = false;
-    completedItemIdsRef.current = new Set<string>();
+    completedItemIndicesRef.current = new Set<number>();
   }, []);
 
   const recordCurrentItem = useCallback(
@@ -115,9 +149,9 @@ export function PracticePage({
         return;
       }
 
-      const item = lesson.items[itemIndex];
+      const item = practiceItems[itemIndex];
 
-      if (!item || completedItemIdsRef.current.has(item.id)) {
+      if (!item || completedItemIndicesRef.current.has(itemIndex)) {
         return;
       }
 
@@ -125,7 +159,7 @@ export function PracticePage({
       const elapsedMs = now - itemStartedAtRef.current;
       const correct = !currentItemHasMistakeRef.current;
 
-      completedItemIdsRef.current.add(item.id);
+      completedItemIndicesRef.current.add(itemIndex);
       onRecordAttempt(lesson.id, item, correct, elapsedMs);
       setRunStats((currentStats) => ({
         correct: currentStats.correct + (correct ? 1 : 0),
@@ -134,7 +168,7 @@ export function PracticePage({
       currentItemHasMistakeRef.current = false;
       itemStartedAtRef.current = now;
     },
-    [ensureTimers, lesson, onRecordAttempt],
+    [ensureTimers, lesson, onRecordAttempt, practiceItems],
   );
 
   const completeRun = useCallback(() => {
@@ -216,22 +250,14 @@ export function PracticePage({
         return;
       }
 
-      const nextValue = typedValue + digit;
-
-      if (!activeToken.expected.startsWith(nextValue)) {
+      if (digit !== activeToken.expected) {
         flagMistake(activeToken);
         return;
       }
 
-      if (nextValue.length === activeToken.expected.length) {
-        setTypedValue("");
-        setFeedback({ tone: "good", text: "正确" });
-        markTokenCorrect(activeToken, currentTokenIndex);
-        return;
-      }
-
-      setTypedValue(nextValue);
-      setFeedback({ tone: "idle", text: "继续" });
+      setTypedValue("");
+      setFeedback({ tone: "good", text: "正确" });
+      markTokenCorrect(activeToken, currentTokenIndex);
     },
     [
       activeToken,
@@ -240,7 +266,6 @@ export function PracticePage({
       flagMistake,
       isRunComplete,
       markTokenCorrect,
-      typedValue,
     ],
   );
 
@@ -268,13 +293,50 @@ export function PracticePage({
   ]);
 
   const handleBackspace = useCallback(() => {
-    if (isRunComplete || !typedValue) {
+    if (isRunComplete || !activeToken) {
       return;
     }
 
-    setTypedValue((currentValue) => currentValue.slice(0, -1));
+    ensureTimers();
+    setTypedValue("");
     setFeedback({ tone: "idle", text: "调整" });
-  }, [isRunComplete, typedValue]);
+
+    if (tokenResults[activeToken.id]) {
+      setTokenResults((currentResults) => {
+        const nextResults = { ...currentResults };
+        delete nextResults[activeToken.id];
+        return nextResults;
+      });
+      return;
+    }
+
+    const previousTokenIndex = getPreviousTokenIndexInItem(
+      tokens,
+      currentTokenIndex,
+    );
+
+    if (previousTokenIndex === -1) {
+      setFeedback({ tone: "idle", text: "词首" });
+      return;
+    }
+
+    const previousToken = tokens[previousTokenIndex];
+
+    setCurrentTokenIndex(previousTokenIndex);
+    setTokenResults((currentResults) => {
+      const nextResults = { ...currentResults };
+      delete nextResults[activeToken.id];
+      delete nextResults[previousToken.id];
+      return nextResults;
+    });
+  }, [
+    activeToken,
+    currentTokenIndex,
+    ensureTimers,
+    isRunComplete,
+    tokenResults,
+    tokens,
+  ]);
 
   const handleSkipCurrent = useCallback(() => {
     if (!lesson || !activeToken || isRunComplete) {
@@ -395,22 +457,16 @@ export function PracticePage({
         <>
           <section className="flex flex-1 items-center py-4" aria-label="题目">
             <div className="max-h-[50svh] w-full overflow-y-auto px-1 py-3 sm:px-2">
-              <div className="flex flex-wrap items-start justify-center gap-x-5 gap-y-8 sm:gap-x-7">
+              <div className="flex flex-wrap items-start justify-center gap-x-0 gap-y-8">
                 {groupedTokens.map(({ item, tokens: itemTokens }) => (
-                  <div className="inline-flex items-start gap-1" key={item.id}>
-                    {itemTokens.map((token) => (
-                      <TokenCell
-                        currentInput={
-                          activeToken?.id === token.id ? typedValue : ""
-                        }
-                        isActive={activeToken?.id === token.id}
-                        key={token.id}
-                        lessonMode={lesson.mode}
-                        result={tokenResults[token.id]}
-                        token={token}
-                      />
-                    ))}
-                  </div>
+                  <PracticeItemCells
+                    activeTokenId={activeToken?.id}
+                    currentInput={typedValue}
+                    itemTokens={itemTokens}
+                    key={`${item.id}-${itemTokens[0]?.itemIndex ?? 0}`}
+                    lessonMode={lesson.mode}
+                    tokenResults={tokenResults}
+                  />
                 ))}
               </div>
             </div>
@@ -502,6 +558,98 @@ type TokenCellProps = {
   token: PracticeToken;
 };
 
+type PracticeItemCellsProps = {
+  activeTokenId?: string;
+  currentInput: string;
+  itemTokens: PracticeToken[];
+  lessonMode: LessonMode;
+  tokenResults: Record<string, TokenResult>;
+};
+
+function PracticeItemCells({
+  activeTokenId,
+  currentInput,
+  itemTokens,
+  lessonMode,
+  tokenResults,
+}: PracticeItemCellsProps) {
+  const charTokens = itemTokens.filter((token) => token.kind === "char");
+  const spaceToken = itemTokens.find((token) => token.kind === "space");
+  const syllableIndexes = [...new Set(charTokens.map((token) => token.syllableIndex))];
+
+  return (
+    <div className="inline-flex items-start gap-0">
+      <span className="inline-flex items-start gap-1">
+        {syllableIndexes.map((syllableIndex) => {
+          const syllableTokens = charTokens.filter(
+            (token) => token.syllableIndex === syllableIndex,
+          );
+
+          return (
+            <SyllableCells
+              activeTokenId={activeTokenId}
+              currentInput={currentInput}
+              key={syllableIndex}
+              lessonMode={lessonMode}
+              tokenResults={tokenResults}
+              tokens={syllableTokens}
+            />
+          );
+        })}
+      </span>
+      {spaceToken && (
+        <TokenCell
+          currentInput={activeTokenId === spaceToken.id ? currentInput : ""}
+          isActive={activeTokenId === spaceToken.id}
+          lessonMode={lessonMode}
+          result={tokenResults[spaceToken.id]}
+          token={spaceToken}
+        />
+      )}
+    </div>
+  );
+}
+
+type SyllableCellsProps = {
+  activeTokenId?: string;
+  currentInput: string;
+  lessonMode: LessonMode;
+  tokenResults: Record<string, TokenResult>;
+  tokens: PracticeToken[];
+};
+
+function SyllableCells({
+  activeTokenId,
+  currentInput,
+  lessonMode,
+  tokenResults,
+  tokens,
+}: SyllableCellsProps) {
+  const hanzi = tokens[0]?.hanzi;
+
+  return (
+    <span className="inline-grid justify-items-center gap-1">
+      {lessonMode === "hanzi" && (
+        <span className="grid h-5 place-items-center text-base font-black leading-5 text-slate-900/35 sm:h-6 sm:text-lg sm:leading-6">
+          {hanzi ?? ""}
+        </span>
+      )}
+      <span className="inline-flex gap-0.5">
+        {tokens.map((token) => (
+          <TokenCell
+            currentInput={activeTokenId === token.id ? currentInput : ""}
+            isActive={activeTokenId === token.id}
+            key={token.id}
+            lessonMode={lessonMode}
+            result={tokenResults[token.id]}
+            token={token}
+          />
+        ))}
+      </span>
+    </span>
+  );
+}
+
 function TokenCell({
   currentInput,
   isActive,
@@ -518,12 +666,13 @@ function TokenCell({
         {lessonMode === "hanzi" && <span className="h-5 sm:h-6" />}
         <span
           aria-label="空格"
+          id={getTokenElementId(token.id)}
           className={cx(
-            "mx-1 h-10 w-3 rounded-full border transition sm:h-11 sm:w-4",
-            isCorrect && "border-emerald-300 bg-emerald-200",
-            isWrong && "border-rose-300 bg-rose-200",
-            !result && isActive && "border-sky-300 bg-sky-200 ring-2 ring-sky-300",
-            !result && !isActive && "border-transparent bg-slate-200/70",
+            "mx-2 h-10 w-5 rounded-md border bg-white transition sm:h-11 sm:w-6",
+            isCorrect && "border-emerald-400 bg-emerald-50",
+            isWrong && "border-rose-400 bg-rose-50",
+            !result && isActive && "border-sky-500 ring-2 ring-sky-300",
+            !result && !isActive && "border-slate-200",
           )}
         />
         <span className="h-4" />
@@ -533,14 +682,10 @@ function TokenCell({
 
   return (
     <span className="inline-grid justify-items-center gap-1" title={token.pinyin}>
-      {lessonMode === "hanzi" && (
-        <span className="grid h-5 place-items-center text-base font-black leading-5 text-slate-900/35 sm:h-6 sm:text-lg sm:leading-6">
-          {token.hanzi ?? ""}
-        </span>
-      )}
       <span
+        id={getTokenElementId(token.id)}
         className={cx(
-          "grid h-10 min-w-12 place-items-center rounded-md border bg-white px-2 text-base font-black leading-none tracking-normal transition sm:h-11 sm:min-w-14 sm:text-lg",
+          "grid h-10 w-7 place-items-center rounded-md border bg-white text-base font-black leading-none tracking-normal transition sm:h-11 sm:w-8 sm:text-lg",
           isCorrect && "border-emerald-400 bg-emerald-50 text-emerald-800",
           isWrong && "border-rose-400 bg-rose-50 text-rose-800",
           !result &&

@@ -10,6 +10,8 @@ export type PracticeToken = {
   hanzi?: string;
   pinyin: string;
   expected: string;
+  syllableIndex: number;
+  letterIndex: number;
 };
 
 export type TokenResult = "correct" | "wrong";
@@ -29,31 +31,40 @@ export const createPracticeTokens = (
         ? labelCharacters
         : [];
 
-    return syllables.flatMap((syllable, syllableIndex) => {
-      const tokenBaseId = `${trainingItem.id}-${syllableIndex}`;
-      const charToken: PracticeToken = {
-        id: `${tokenBaseId}-char`,
-        kind: "char",
+    const charTokens = syllables.flatMap((syllable, syllableIndex) => {
+      const normalizedSyllable = normalizePinyin(syllable);
+
+      return normalizedSyllable.split("").map((letter, letterIndex) => ({
+        id: `${trainingItem.id}-${itemIndex}-${syllableIndex}-${letterIndex}-char`,
+        kind: "char" as const,
         itemIndex,
         itemId: trainingItem.id,
-        label: normalizePinyin(syllable),
+        label: letter,
         hanzi: hanziCharacters[syllableIndex],
         pinyin: syllable,
-        expected: pinyinToDigits(syllable),
-      };
-
-      const spaceToken: PracticeToken = {
-        id: `${tokenBaseId}-space`,
-        kind: "space",
-        itemIndex,
-        itemId: trainingItem.id,
-        label: "",
-        pinyin: " ",
-        expected: " ",
-      };
-
-      return [charToken, spaceToken];
+        expected: pinyinToDigits(letter),
+        syllableIndex,
+        letterIndex,
+      }));
     });
+
+    if (itemIndex >= items.length - 1) {
+      return charTokens;
+    }
+
+    const spaceToken: PracticeToken = {
+      id: `${trainingItem.id}-${itemIndex}-space`,
+      kind: "space",
+      itemIndex,
+      itemId: trainingItem.id,
+      label: "",
+      pinyin: " ",
+      expected: " ",
+      syllableIndex: syllables.length,
+      letterIndex: 0,
+    };
+
+    return [...charTokens, spaceToken];
   });
 
 export const getAccuracy = (correct: number, attempts: number) => {
@@ -73,3 +84,28 @@ export const getFirstTokenIndexAfterItem = (
   tokens: PracticeToken[],
   itemIndex: number,
 ) => tokens.findIndex((token) => token.itemIndex > itemIndex);
+
+export const getPreviousTokenIndexInItem = (
+  tokens: PracticeToken[],
+  tokenIndex: number,
+) => {
+  const currentToken = tokens[tokenIndex];
+
+  if (!currentToken) {
+    return -1;
+  }
+
+  for (let index = tokenIndex - 1; index >= 0; index -= 1) {
+    const token = tokens[index];
+
+    if (token.itemIndex !== currentToken.itemIndex) {
+      return -1;
+    }
+
+    if (token.kind === "char") {
+      return index;
+    }
+  }
+
+  return -1;
+};
