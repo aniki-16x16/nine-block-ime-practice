@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { NineKeyKeyboard } from "../components/NineKeyKeyboard";
 import { LESSONS } from "../data/lessons";
-import type { TrainingItem } from "../data/lessons";
+import type { LessonMode, TrainingItem } from "../data/lessons";
 import { formatDuration } from "../utils/nineKey";
 import {
   createPracticeTokens,
@@ -38,7 +38,7 @@ export function PracticePage({
     [lessonId],
   );
   const tokens = useMemo(
-    () => (lesson ? createPracticeTokens(lesson.items) : []),
+    () => (lesson ? createPracticeTokens(lesson.items, lesson.mode) : []),
     [lesson],
   );
   const [currentTokenIndex, setCurrentTokenIndex] = useState(0);
@@ -350,7 +350,8 @@ export function PracticePage({
             {feedback.text}
           </span>
           <button
-            className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+            className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={isRunComplete}
             onClick={handleSkipCurrent}
             type="button"
           >
@@ -383,96 +384,176 @@ export function PracticePage({
         </div>
       </section>
 
-      <section className="flex flex-1 items-center py-4" aria-label="题目">
-        <div className="max-h-[48svh] w-full overflow-y-auto rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-            {groupedTokens.map(({ item, tokens: itemTokens }) => (
-              <div className="inline-flex items-center gap-1" key={item.id}>
-                {itemTokens.map((token) => (
-                  <TokenCell
-                    currentInput={
-                      activeToken?.id === token.id ? typedValue : ""
-                    }
-                    isActive={activeToken?.id === token.id}
-                    key={token.id}
-                    result={tokenResults[token.id]}
-                    token={token}
-                  />
+      {isRunComplete ? (
+        <VictorySummary
+          correct={runStats.correct}
+          elapsedMs={completedElapsedMs}
+          onRetry={resetRun}
+          wrong={runStats.wrong}
+        />
+      ) : (
+        <>
+          <section className="flex flex-1 items-center py-4" aria-label="题目">
+            <div className="max-h-[50svh] w-full overflow-y-auto px-1 py-3 sm:px-2">
+              <div className="flex flex-wrap items-start justify-center gap-x-5 gap-y-8 sm:gap-x-7">
+                {groupedTokens.map(({ item, tokens: itemTokens }) => (
+                  <div className="inline-flex items-start gap-1" key={item.id}>
+                    {itemTokens.map((token) => (
+                      <TokenCell
+                        currentInput={
+                          activeToken?.id === token.id ? typedValue : ""
+                        }
+                        isActive={activeToken?.id === token.id}
+                        key={token.id}
+                        lessonMode={lesson.mode}
+                        result={tokenResults[token.id]}
+                        token={token}
+                      />
+                    ))}
+                  </div>
                 ))}
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+            </div>
+          </section>
 
-      <section className="pb-2" aria-label="输入键盘">
-        <NineKeyKeyboard
-          disabled={isRunComplete}
-          onBackspace={handleBackspace}
-          onDigitPress={handleDigitPress}
-          onSpace={handleSpace}
-        />
-      </section>
-
-      {isRunComplete && (
-        <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <strong className="text-lg font-black">本课题完成</strong>
-            <span className="text-sm font-bold">
-              用时 {formatDuration(completedElapsedMs)} · 正确{" "}
-              {runStats.correct} · 错题 {runStats.wrong}
-            </span>
-          </div>
-        </div>
+          <section className="pb-2" aria-label="输入键盘">
+            <NineKeyKeyboard
+              onBackspace={handleBackspace}
+              onDigitPress={handleDigitPress}
+              onSpace={handleSpace}
+            />
+          </section>
+        </>
       )}
     </main>
+  );
+}
+
+type VictorySummaryProps = {
+  correct: number;
+  elapsedMs: number;
+  onRetry: () => void;
+  wrong: number;
+};
+
+function VictorySummary({
+  correct,
+  elapsedMs,
+  onRetry,
+  wrong,
+}: VictorySummaryProps) {
+  return (
+    <section
+      className="flex flex-1 items-center justify-center py-8 text-center"
+      aria-label="完成结算"
+    >
+      <div className="w-full max-w-md">
+        <div className="relative mx-auto grid h-28 w-28 place-items-center rounded-full bg-emerald-100 text-emerald-800 shadow-inner">
+          <span className="absolute left-1/2 top-0 h-5 w-1 -translate-x-1/2 -translate-y-3 rounded-full bg-sky-400" />
+          <span className="absolute right-2 top-5 h-4 w-1 rotate-45 rounded-full bg-amber-400" />
+          <span className="absolute bottom-3 right-0 h-5 w-1 rotate-90 rounded-full bg-rose-400" />
+          <span className="absolute bottom-2 left-3 h-4 w-1 -rotate-45 rounded-full bg-sky-500" />
+          <span className="absolute left-0 top-8 h-5 w-1 rotate-90 rounded-full bg-amber-500" />
+          <strong className="text-2xl font-black">完成</strong>
+        </div>
+        <h2 className="mt-5 text-3xl font-black text-slate-950">课题完成</h2>
+        <p className="mt-2 text-sm font-bold text-slate-500">
+          用时 {formatDuration(elapsedMs)} · 正确 {correct} · 错题 {wrong}
+        </p>
+        <div className="mt-6 grid grid-cols-2 gap-3 text-left">
+          <div className="rounded-lg border border-emerald-200 bg-white p-4">
+            <p className="text-sm font-bold text-slate-500">正确题项</p>
+            <strong className="mt-1 block text-2xl font-black text-emerald-700">
+              {correct}
+            </strong>
+          </div>
+          <div className="rounded-lg border border-rose-200 bg-white p-4">
+            <p className="text-sm font-bold text-slate-500">错题回收</p>
+            <strong className="mt-1 block text-2xl font-black text-rose-700">
+              {wrong}
+            </strong>
+          </div>
+        </div>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Link
+            className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-slate-300"
+            to="/"
+          >
+            返回课题
+          </Link>
+          <button
+            className="h-11 rounded-lg border border-slate-300 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+            onClick={onRetry}
+            type="button"
+          >
+            再练一次
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 
 type TokenCellProps = {
   currentInput: string;
   isActive: boolean;
+  lessonMode: LessonMode;
   result?: TokenResult;
   token: PracticeToken;
 };
 
-function TokenCell({ currentInput, isActive, result, token }: TokenCellProps) {
+function TokenCell({
+  currentInput,
+  isActive,
+  lessonMode,
+  result,
+  token,
+}: TokenCellProps) {
+  const isCorrect = result === "correct";
+  const isWrong = result === "wrong";
+
   if (token.kind === "space") {
     return (
-      <span
-        aria-label="空格"
-        className={cx(
-          "mx-1 h-12 w-5 rounded-full transition sm:h-14 sm:w-7",
-          isActive && "bg-sky-200 ring-2 ring-sky-300",
-          !isActive && result === "correct" && "bg-emerald-100",
-          !isActive && result === "wrong" && "bg-rose-100",
-          !isActive && !result && "bg-transparent",
-        )}
-      />
+      <span className="inline-grid justify-items-center gap-1">
+        {lessonMode === "hanzi" && <span className="h-5 sm:h-6" />}
+        <span
+          aria-label="空格"
+          className={cx(
+            "mx-1 h-10 w-3 rounded-full border transition sm:h-11 sm:w-4",
+            isCorrect && "border-emerald-300 bg-emerald-200",
+            isWrong && "border-rose-300 bg-rose-200",
+            !result && isActive && "border-sky-300 bg-sky-200 ring-2 ring-sky-300",
+            !result && !isActive && "border-transparent bg-slate-200/70",
+          )}
+        />
+        <span className="h-4" />
+      </span>
     );
   }
 
   return (
-    <span
-      className={cx(
-        "relative grid h-12 w-12 place-items-center rounded-lg border text-xl font-black transition sm:h-14 sm:w-14 sm:text-2xl",
-        isActive && "border-sky-500 bg-sky-50 text-sky-950 ring-2 ring-sky-300",
-        !isActive &&
-          result === "correct" &&
-          "border-emerald-300 bg-emerald-50 text-emerald-800",
-        !isActive &&
-          result === "wrong" &&
-          "border-rose-300 bg-rose-50 text-rose-800",
-        !isActive && !result && "border-slate-200 bg-slate-50 text-slate-900",
+    <span className="inline-grid justify-items-center gap-1" title={token.pinyin}>
+      {lessonMode === "hanzi" && (
+        <span className="grid h-5 place-items-center text-base font-black leading-5 text-slate-900/35 sm:h-6 sm:text-lg sm:leading-6">
+          {token.hanzi ?? ""}
+        </span>
       )}
-      title={token.pinyin}
-    >
-      {token.label}
-      {isActive && currentInput && (
-        <small className="absolute -bottom-5 text-xs font-black text-sky-700">
-          {currentInput}
-        </small>
-      )}
+      <span
+        className={cx(
+          "grid h-10 min-w-12 place-items-center rounded-md border bg-white px-2 text-base font-black leading-none tracking-normal transition sm:h-11 sm:min-w-14 sm:text-lg",
+          isCorrect && "border-emerald-400 bg-emerald-50 text-emerald-800",
+          isWrong && "border-rose-400 bg-rose-50 text-rose-800",
+          !result &&
+            isActive &&
+            "border-sky-500 text-sky-950 ring-2 ring-sky-300",
+          !result && !isActive && "border-slate-200 text-slate-900",
+        )}
+      >
+        {token.label}
+      </span>
+      <span className="h-4 text-xs font-black leading-4 text-sky-700">
+        {isActive ? currentInput : ""}
+      </span>
     </span>
   );
 }

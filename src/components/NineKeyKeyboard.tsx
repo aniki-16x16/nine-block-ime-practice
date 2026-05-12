@@ -29,24 +29,33 @@ export function NineKeyKeyboard({
     return (
       <button
         className={cx(cellClass, "grid place-items-center p-2")}
+        aria-label={key.letters ? `${key.letters} 键` : "空白键位"}
         disabled={disabled || !key.enabled}
         key={digit}
         onClick={() => onDigitPress(digit)}
         type="button"
       >
-        <span className="text-3xl font-black leading-none">{key.digit}</span>
-        <span className="min-h-4 text-xs font-bold tracking-wide text-slate-500">
-          {key.letters || " "}
-        </span>
+        {key.letters && (
+          <span className="text-xl font-black leading-none tracking-normal sm:text-2xl">
+            {key.letters}
+          </span>
+        )}
       </button>
     );
   };
 
   return (
     <div
-      className="mx-auto grid w-full max-w-xl grid-cols-4 gap-2 sm:gap-3"
+      className="mx-auto grid w-full max-w-xl grid-cols-5 gap-2 sm:gap-3"
       aria-label="九宫格键盘"
     >
+      <button
+        aria-hidden="true"
+        className={cx(cellClass, "row-span-4 pointer-events-none")}
+        disabled
+        tabIndex={-1}
+        type="button"
+      />
       {renderDigit("1")}
       {renderDigit("2")}
       {renderDigit("3")}
@@ -70,16 +79,17 @@ export function NineKeyKeyboard({
       {renderDigit("9")}
       <div aria-hidden="true" />
 
-      <div aria-hidden="true" />
       <button
-        className={cx(cellClass, "px-3 text-base font-black text-slate-700")}
+        className={cx(
+          cellClass,
+          "col-span-3 px-3 text-base font-black text-slate-700",
+        )}
         disabled={disabled}
         onClick={onSpace}
         type="button"
       >
         空格
       </button>
-      <div aria-hidden="true" />
       <div aria-hidden="true" />
     </div>
   );

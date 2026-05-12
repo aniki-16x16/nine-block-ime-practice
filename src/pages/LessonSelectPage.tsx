@@ -20,6 +20,17 @@ export function LessonSelectPage({
   totalAccuracy,
   weakItems,
 }: LessonSelectPageProps) {
+  const lessonGroups = [
+    {
+      title: "拼音练习",
+      lessons: LESSONS.filter((lesson) => lesson.mode === "pinyin"),
+    },
+    {
+      title: "汉字练习",
+      lessons: LESSONS.filter((lesson) => lesson.mode === "hanzi"),
+    },
+  ];
+
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-6xl flex-col px-4 py-5 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -49,64 +60,64 @@ export function LessonSelectPage({
       </section>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_280px]">
-        <section aria-label="课题列表">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {LESSONS.map((lesson) => {
-              const lessonStats = progress.lessonStats[lesson.id];
-              const lessonAccuracy = getAccuracy(
-                lessonStats?.correct ?? 0,
-                lessonStats?.attempts ?? 0,
-              );
+        <section className="grid gap-6" aria-label="课题列表">
+          {lessonGroups.map((group) => (
+            <div key={group.title}>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-xl font-black text-slate-950">
+                  {group.title}
+                </h2>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
+                  {group.lessons.length} 个课题
+                </span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {group.lessons.map((lesson) => {
+                  const lessonStats = progress.lessonStats[lesson.id];
+                  const lessonAccuracy = getAccuracy(
+                    lessonStats?.correct ?? 0,
+                    lessonStats?.attempts ?? 0,
+                  );
 
-              return (
-                <Link
-                  className="group rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-                  key={lesson.id}
-                  to={`/practice/${lesson.id}`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-black text-sky-700">
-                        {lesson.level}
-                      </p>
-                      <h2 className="mt-1 truncate text-xl font-black text-slate-950">
-                        {lesson.title}
-                      </h2>
-                      <p className="mt-1 truncate text-sm font-medium text-slate-500">
-                        {lesson.focus}
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
-                      {lesson.items.length} 题
-                    </span>
-                  </div>
+                  return (
+                    <Link
+                      className="group rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+                      key={lesson.id}
+                      to={`/practice/${lesson.id}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-sky-700">
+                            {lesson.level}
+                          </p>
+                          <h3 className="mt-1 truncate text-xl font-black text-slate-950">
+                            {lesson.title}
+                          </h3>
+                          <p className="mt-1 truncate text-sm font-medium text-slate-500">
+                            {lesson.focus}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
+                          {lesson.items.length} 题
+                        </span>
+                      </div>
 
-                  <div
-                    className="mt-4 flex flex-wrap gap-1.5"
-                    aria-hidden="true"
-                  >
-                    {lesson.items.slice(0, 8).map((item) => (
-                      <span
-                        className="grid h-8 min-w-8 place-items-center rounded-md border border-slate-200 bg-slate-50 px-2 text-sm font-black text-slate-700"
-                        key={item.id}
-                      >
-                        {item.label}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
-                    <span className="font-bold text-slate-500">
-                      完成 {lessonStats?.completed ?? 0} 轮
-                    </span>
-                    <span className="font-black text-slate-900">
-                      {lessonStats?.attempts ? `${lessonAccuracy}%` : "未开始"}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+                      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
+                        <span className="font-bold text-slate-500">
+                          完成 {lessonStats?.completed ?? 0} 轮
+                        </span>
+                        <span className="font-black text-slate-900">
+                          {lessonStats?.attempts
+                            ? `${lessonAccuracy}%`
+                            : "未开始"}
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </section>
 
         <aside className="grid gap-3 self-start" aria-label="辅助信息">

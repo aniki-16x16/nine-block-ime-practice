@@ -1,5 +1,5 @@
-import type { TrainingItem } from "../data/lessons";
-import { pinyinToDigits } from "./nineKey";
+import type { LessonMode, TrainingItem } from "../data/lessons";
+import { normalizePinyin, pinyinToDigits } from "./nineKey";
 
 export type PracticeToken = {
   id: string;
@@ -7,6 +7,7 @@ export type PracticeToken = {
   itemIndex: number;
   itemId: string;
   label: string;
+  hanzi?: string;
   pinyin: string;
   expected: string;
 };
@@ -16,16 +17,17 @@ export type TokenResult = "correct" | "wrong";
 export const splitPinyin = (pinyin: string) =>
   pinyin.trim().split(/\s+/).filter(Boolean);
 
-export const createPracticeTokens = (items: TrainingItem[]) =>
+export const createPracticeTokens = (
+  items: TrainingItem[],
+  mode: LessonMode = "pinyin",
+) =>
   items.flatMap((trainingItem, itemIndex) => {
     const syllables = splitPinyin(trainingItem.pinyin);
     const labelCharacters = Array.from(trainingItem.label);
-    const visibleCharacters =
-      labelCharacters.length === syllables.length
+    const hanziCharacters =
+      mode === "hanzi" && labelCharacters.length === syllables.length
         ? labelCharacters
-        : syllables.map(
-            (syllable, index) => labelCharacters[index] ?? syllable,
-          );
+        : [];
 
     return syllables.flatMap((syllable, syllableIndex) => {
       const tokenBaseId = `${trainingItem.id}-${syllableIndex}`;
@@ -34,14 +36,11 @@ export const createPracticeTokens = (items: TrainingItem[]) =>
         kind: "char",
         itemIndex,
         itemId: trainingItem.id,
-        label: visibleCharacters[syllableIndex] ?? syllable,
+        label: normalizePinyin(syllable),
+        hanzi: hanziCharacters[syllableIndex],
         pinyin: syllable,
         expected: pinyinToDigits(syllable),
       };
-
-      if (syllableIndex >= syllables.length - 1) {
-        return [charToken];
-      }
 
       const spaceToken: PracticeToken = {
         id: `${tokenBaseId}-space`,
