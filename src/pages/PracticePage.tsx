@@ -6,7 +6,6 @@ import type { LessonMode, TrainingItem } from "../data/lessons";
 import { formatDuration } from "../utils/nineKey";
 import {
   createPracticeTokens,
-  getFirstTokenIndexAfterItem,
   getPreviousTokenIndexInItem,
 } from "../utils/practice";
 import type { PracticeToken, TokenResult } from "../utils/practice";
@@ -27,16 +26,12 @@ type RunStats = {
   wrong: number;
 };
 
-type FeedbackTone = "idle" | "good" | "bad" | "done";
-
-const createPracticeQueue = (items: TrainingItem[], runId: number) => {
-  void runId;
-
-  if (items.length <= 1) {
-    return items;
+const createPracticeQueue = (items: TrainingItem[], practiceSize: number) => {
+  if (items.length === 0) {
+    return [];
   }
 
-  return Array.from({ length: items.length }, () => {
+  return Array.from({ length: practiceSize }, () => {
     const itemIndex = Math.floor(Math.random() * items.length);
     return items[itemIndex];
   });
@@ -53,10 +48,12 @@ export function PracticePage({
     () => LESSONS.find((lessonItem) => lessonItem.id === lessonId),
     [lessonId],
   );
-  const [runId, setRunId] = useState(0);
   const practiceItems = useMemo(
-    () => (lesson ? createPracticeQueue(lesson.items, runId) : []),
-    [lesson, runId],
+    () =>
+      lesson
+        ? createPracticeQueue(lesson.items, lesson.practiceSize ?? lesson.items.length)
+        : [],
+    [lesson],
   );
   const tokens = useMemo(
     () => (lesson ? createPracticeTokens(practiceItems, lesson.mode) : []),
@@ -68,13 +65,6 @@ export function PracticePage({
     {},
   );
   const [runStats, setRunStats] = useState<RunStats>({ correct: 0, wrong: 0 });
-  const [feedback, setFeedback] = useState<{
-    tone: FeedbackTone;
-    text: string;
-  }>({
-    tone: "idle",
-    text: "准备",
-  });
   const [isRunComplete, setIsRunComplete] = useState(false);
   const [completedElapsedMs, setCompletedElapsedMs] = useState(0);
   const runStartedAtRef = useRef(0);
@@ -83,10 +73,10 @@ export function PracticePage({
   const completedItemIndicesRef = useRef(new Set<number>());
 
   const activeToken = tokens[currentTokenIndex];
-  const completedTokenCount = Object.keys(tokenResults).length;
+  const completedItemCount = runStats.correct + runStats.wrong;
   const progressPercent =
-    tokens.length > 0
-      ? Math.min(100, (completedTokenCount / tokens.length) * 100)
+    practiceItems.length > 0
+      ? Math.min(100, (completedItemCount / practiceItems.length) * 100)
       : 0;
 
   const groupedTokens = useMemo(() => {
@@ -107,8 +97,8 @@ export function PracticePage({
 
     document.getElementById(getTokenElementId(activeToken.id))?.scrollIntoView({
       behavior: "smooth",
-      block: "nearest",
-      inline: "center",
+      block: "center",
+      inline: "nearest",
     });
   }, [activeToken, isRunComplete]);
 
@@ -124,23 +114,6 @@ export function PracticePage({
     }
 
     return now;
-  }, []);
-
-  const resetRun = useCallback(() => {
-    const now = performance.now();
-
-    setCurrentTokenIndex(0);
-    setTypedValue("");
-    setTokenResults({});
-    setRunStats({ correct: 0, wrong: 0 });
-    setFeedback({ tone: "idle", text: "准备" });
-    setIsRunComplete(false);
-    setCompletedElapsedMs(0);
-    setRunId((currentRunId) => currentRunId + 1);
-    runStartedAtRef.current = now;
-    itemStartedAtRef.current = now;
-    currentItemHasMistakeRef.current = false;
-    completedItemIndicesRef.current = new Set<number>();
   }, []);
 
   const recordCurrentItem = useCallback(
@@ -180,7 +153,6 @@ export function PracticePage({
 
     setIsRunComplete(true);
     setTypedValue("");
-    setFeedback({ tone: "done", text: "完成" });
     setCompletedElapsedMs(now - runStartedAtRef.current);
     onCompleteLesson(lesson.id);
   }, [ensureTimers, isRunComplete, lesson, onCompleteLesson]);
@@ -206,10 +178,6 @@ export function PracticePage({
 
       setCurrentTokenIndex(nextTokenIndex);
       setTypedValue("");
-      setFeedback({
-        tone: "idle",
-        text: nextToken.kind === "space" ? "空格" : "继续",
-      });
     },
     [completeRun, recordCurrentItem, tokens],
   );
@@ -231,10 +199,6 @@ export function PracticePage({
       ...currentResults,
       [token.id]: "wrong",
     }));
-    setFeedback({
-      tone: "bad",
-      text: token.kind === "space" ? "需要空格" : "按键不匹配",
-    });
   }, []);
 
   const handleDigitPress = useCallback(
@@ -256,7 +220,6 @@ export function PracticePage({
       }
 
       setTypedValue("");
-      setFeedback({ tone: "good", text: "正确" });
       markTokenCorrect(activeToken, currentTokenIndex);
     },
     [
@@ -281,7 +244,6 @@ export function PracticePage({
       return;
     }
 
-    setFeedback({ tone: "good", text: "空格" });
     markTokenCorrect(activeToken, currentTokenIndex);
   }, [
     activeToken,
@@ -299,7 +261,6 @@ export function PracticePage({
 
     ensureTimers();
     setTypedValue("");
-    setFeedback({ tone: "idle", text: "调整" });
 
     if (tokenResults[activeToken.id]) {
       setTokenResults((currentResults) => {
@@ -316,7 +277,6 @@ export function PracticePage({
     );
 
     if (previousTokenIndex === -1) {
-      setFeedback({ tone: "idle", text: "词首" });
       return;
     }
 
@@ -338,95 +298,24 @@ export function PracticePage({
     tokens,
   ]);
 
-  const handleSkipCurrent = useCallback(() => {
-    if (!lesson || !activeToken || isRunComplete) {
-      return;
-    }
-
-    ensureTimers();
-    currentItemHasMistakeRef.current = true;
-    setTokenResults((currentResults) => {
-      const nextResults = { ...currentResults };
-
-      for (const token of tokens) {
-        if (token.itemIndex === activeToken.itemIndex) {
-          nextResults[token.id] = "wrong";
-        }
-      }
-
-      return nextResults;
-    });
-    recordCurrentItem(activeToken.itemIndex);
-
-    const nextTokenIndex = getFirstTokenIndexAfterItem(
-      tokens,
-      activeToken.itemIndex,
-    );
-
-    if (nextTokenIndex === -1) {
-      completeRun();
-      return;
-    }
-
-    setCurrentTokenIndex(nextTokenIndex);
-    setTypedValue("");
-    setFeedback({ tone: "bad", text: "已跳过" });
-  }, [
-    activeToken,
-    completeRun,
-    ensureTimers,
-    isRunComplete,
-    lesson,
-    recordCurrentItem,
-    tokens,
-  ]);
-
   if (!lesson) {
     return <Navigate replace to="/" />;
   }
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-5xl flex-col px-3 py-4 sm:px-6">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
-        <div className="min-w-0">
-          <Link
-            className="text-sm font-black text-sky-700 hover:text-sky-800"
-            to="/"
-          >
-            返回课题
-          </Link>
-          <h1 className="mt-1 truncate text-2xl font-black text-slate-950 sm:text-3xl">
-            {lesson.title}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <span
-            className={cx(
-              "rounded-full px-3 py-1 text-sm font-black",
-              feedback.tone === "good" && "bg-emerald-100 text-emerald-700",
-              feedback.tone === "bad" && "bg-rose-100 text-rose-700",
-              feedback.tone === "done" && "bg-sky-100 text-sky-700",
-              feedback.tone === "idle" && "bg-slate-100 text-slate-600",
-            )}
-          >
-            {feedback.text}
-          </span>
-          <button
-            className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-45"
-            disabled={isRunComplete}
-            onClick={handleSkipCurrent}
-            type="button"
-          >
-            跳过
-          </button>
-          <button
-            className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-            onClick={resetRun}
-            type="button"
-          >
-            重练
-          </button>
-        </div>
+      <header className="grid grid-cols-[2.75rem_1fr_2.75rem] items-center border-b border-slate-200 pb-3">
+        <Link
+          aria-label="返回课题"
+          className="grid h-11 w-11 place-items-center rounded-lg text-2xl font-black text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+          to="/"
+        >
+          ←
+        </Link>
+        <h1 className="truncate text-center text-2xl font-black text-slate-950 sm:text-3xl">
+          {lesson.title}
+        </h1>
+        <span aria-hidden="true" />
       </header>
 
       <section className="mt-3" aria-label="练习进度">
@@ -438,7 +327,7 @@ export function PracticePage({
         </div>
         <div className="mt-2 flex items-center justify-between text-sm font-bold text-slate-500">
           <span>
-            {Math.min(completedTokenCount, tokens.length)} / {tokens.length}
+            {Math.min(completedItemCount, practiceItems.length)} / {practiceItems.length}
           </span>
           <span>
             正确 {runStats.correct} · 错题 {runStats.wrong}
@@ -450,7 +339,6 @@ export function PracticePage({
         <VictorySummary
           correct={runStats.correct}
           elapsedMs={completedElapsedMs}
-          onRetry={resetRun}
           wrong={runStats.wrong}
         />
       ) : (
@@ -488,14 +376,12 @@ export function PracticePage({
 type VictorySummaryProps = {
   correct: number;
   elapsedMs: number;
-  onRetry: () => void;
   wrong: number;
 };
 
 function VictorySummary({
   correct,
   elapsedMs,
-  onRetry,
   wrong,
 }: VictorySummaryProps) {
   return (
@@ -530,20 +416,13 @@ function VictorySummary({
             </strong>
           </div>
         </div>
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+        <div className="mt-6 flex justify-center">
           <Link
             className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-slate-300"
             to="/"
           >
             返回课题
           </Link>
-          <button
-            className="h-11 rounded-lg border border-slate-300 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-            onClick={onRetry}
-            type="button"
-          >
-            再练一次
-          </button>
         </div>
       </div>
     </section>
@@ -668,10 +547,10 @@ function TokenCell({
           aria-label="空格"
           id={getTokenElementId(token.id)}
           className={cx(
-            "mx-2 h-10 w-5 rounded-md border bg-white transition sm:h-11 sm:w-6",
-            isCorrect && "border-emerald-400 bg-emerald-50",
+            "mx-2 h-10 w-5 rounded-md border bg-teal-50 transition sm:h-11 sm:w-6",
+            isCorrect && "border-teal-400 bg-teal-100",
             isWrong && "border-rose-400 bg-rose-50",
-            !result && isActive && "border-sky-500 ring-2 ring-sky-300",
+            !result && isActive && "border-sky-500 bg-sky-200 ring-2 ring-sky-300",
             !result && !isActive && "border-slate-200",
           )}
         />

@@ -32,8 +32,8 @@ export function LessonSelectPage({
   ];
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-6xl flex-col px-4 py-5 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
+    <main className="mx-auto flex min-h-svh w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
+      <header className="flex flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-bold text-sky-700">九宫格输入训练</p>
           <h1 className="mt-1 text-3xl font-black tracking-normal text-slate-950 sm:text-4xl">
@@ -50,7 +50,7 @@ export function LessonSelectPage({
       </header>
 
       <section
-        className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4"
+        className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4"
         aria-label="整体练习信息"
       >
         <InfoTile label="总正确率" value={`${totalAccuracy}%`} />
@@ -59,50 +59,51 @@ export function LessonSelectPage({
         <InfoTile label="已练题次" value={`${progress.totalAttempts}`} />
       </section>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_280px]">
-        <section className="grid gap-6" aria-label="课题列表">
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_260px]">
+        <section className="grid gap-5" aria-label="课题列表">
           {lessonGroups.map((group) => (
             <div key={group.title}>
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="text-xl font-black text-slate-950">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h2 className="text-lg font-black text-slate-950">
                   {group.title}
                 </h2>
                 <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
                   {group.lessons.length} 个课题
                 </span>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2">
                 {group.lessons.map((lesson) => {
                   const lessonStats = progress.lessonStats[lesson.id];
                   const lessonAccuracy = getAccuracy(
                     lessonStats?.correct ?? 0,
                     lessonStats?.attempts ?? 0,
                   );
+                  const practiceSize = lesson.practiceSize ?? lesson.items.length;
 
                   return (
                     <Link
-                      className="group rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+                      className="group rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
                       key={lesson.id}
                       to={`/practice/${lesson.id}`}
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="text-xs font-black text-sky-700">
                             {lesson.level}
                           </p>
-                          <h3 className="mt-1 truncate text-xl font-black text-slate-950">
+                          <h3 className="mt-0.5 truncate text-base font-black text-slate-950">
                             {lesson.title}
                           </h3>
-                          <p className="mt-1 truncate text-sm font-medium text-slate-500">
+                          <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
                             {lesson.focus}
                           </p>
                         </div>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
-                          {lesson.items.length} 题
+                        <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-black text-slate-600">
+                          {practiceSize} 题
                         </span>
                       </div>
 
-                      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
+                      <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
                         <span className="font-bold text-slate-500">
                           完成 {lessonStats?.completed ?? 0} 轮
                         </span>
@@ -190,9 +191,9 @@ type InfoTileProps = {
 
 function InfoTile({ label, value }: InfoTileProps) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-sm font-bold text-slate-500">{label}</p>
-      <strong className="mt-2 block text-2xl font-black text-slate-950">
+    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+      <p className="text-xs font-bold text-slate-500">{label}</p>
+      <strong className="mt-1 block text-2xl font-black text-slate-950">
         {value}
       </strong>
     </div>
