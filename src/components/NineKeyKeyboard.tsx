@@ -12,7 +12,7 @@ type NineKeyKeyboardProps = {
 const keyByDigit = new Map(NINE_KEYS.map((key) => [key.digit, key]));
 
 const cellClass =
-  "min-h-16 rounded-lg border border-slate-300 bg-white text-slate-900 shadow-sm transition hover:border-sky-400 hover:bg-sky-50 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-45 sm:min-h-20";
+  "min-h-16 rounded-lg border border-slate-300 bg-white text-slate-900 shadow-sm transition-[transform,box-shadow,background-color,border-color] duration-100 ease-out hover:border-sky-400 hover:bg-sky-50 active:translate-y-0.5 active:scale-[0.97] active:shadow-inner focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-45 sm:min-h-20";
 
 const keySoundSources = [
   "/soun1.mp3",
