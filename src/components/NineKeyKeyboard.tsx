@@ -12,7 +12,7 @@ type NineKeyKeyboardProps = {
 const keyByDigit = new Map(NINE_KEYS.map((key) => [key.digit, key]));
 
 const cellClass =
-  "min-h-16 rounded-lg border border-slate-300 bg-white text-slate-900 shadow-sm transition-[transform,box-shadow,background-color,border-color] duration-100 ease-out hover:border-sky-400 hover:bg-sky-50 active:translate-y-0.5 active:scale-[0.97] active:shadow-inner focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-45 sm:min-h-20";
+  "h-[clamp(2.6rem,8vh,4.5rem)] rounded-lg border border-slate-300 bg-white text-slate-900 shadow-sm transition-[transform,box-shadow,background-color,border-color] duration-100 ease-out hover:border-sky-400 hover:bg-sky-50 active:translate-y-0.5 active:scale-[0.97] active:shadow-inner focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-45";
 
 const keySoundSources = [
   "/soun1.mp3",
@@ -52,7 +52,7 @@ export function NineKeyKeyboard({
 
     return (
       <button
-        className={cx(cellClass, "grid place-items-center p-2")}
+        className={cx(cellClass, "grid place-items-center p-1.5 sm:p-2")}
         aria-label={key.letters ? `${key.letters} 键` : "空白键位"}
         disabled={disabled || !key.enabled}
         key={digit}
@@ -60,7 +60,7 @@ export function NineKeyKeyboard({
         type="button"
       >
         {key.letters && (
-          <span className="text-xl font-black leading-none tracking-normal sm:text-2xl">
+          <span className="max-w-full break-all text-center text-sm font-black leading-[1.1] tracking-tight sm:text-base">
             {key.letters}
           </span>
         )}
@@ -70,7 +70,7 @@ export function NineKeyKeyboard({
 
   return (
     <div
-      className="mx-auto grid w-full max-w-xl grid-cols-5 gap-2 sm:gap-3"
+      className="mx-auto grid w-full max-w-xl grid-cols-5 gap-1.5 sm:gap-2"
       aria-label="九宫格键盘"
     >
       <button
@@ -85,7 +85,7 @@ export function NineKeyKeyboard({
       {renderDigit("3")}
       <button
         aria-label="退格"
-        className={cx(cellClass, "text-3xl font-black")}
+        className={cx(cellClass, "text-2xl font-black sm:text-3xl")}
         disabled={disabled}
         onClick={() => handleKeyboardPress(onBackspace)}
         type="button"
@@ -106,7 +106,7 @@ export function NineKeyKeyboard({
       <button
         className={cx(
           cellClass,
-          "col-span-3 px-3 text-base font-black text-slate-700",
+          "col-span-3 px-2 text-sm font-black text-slate-700 sm:text-base",
         )}
         disabled={disabled}
         onClick={() => handleKeyboardPress(onSpace)}

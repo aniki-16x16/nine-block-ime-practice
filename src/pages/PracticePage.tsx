@@ -303,7 +303,13 @@ export function PracticePage({
   }
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-5xl flex-col px-3 py-4 sm:px-6">
+    <main
+      className="mx-auto flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden px-3 sm:px-6"
+      style={{
+        paddingTop: "max(0.5rem, env(safe-area-inset-top))",
+        paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))",
+      }}
+    >
       <header className="grid grid-cols-[2.75rem_1fr_2.75rem] items-center border-b border-slate-200 pb-3">
         <Link
           aria-label="返回课题"
@@ -318,7 +324,7 @@ export function PracticePage({
         <span aria-hidden="true" />
       </header>
 
-      <section className="mt-3" aria-label="练习进度">
+      <section className="mt-3 shrink-0" aria-label="练习进度">
         <div className="h-2 overflow-hidden rounded-full bg-slate-200">
           <div
             className="h-full rounded-full bg-sky-500 transition-all"
@@ -343,8 +349,8 @@ export function PracticePage({
         />
       ) : (
         <>
-          <section className="flex flex-1 items-center py-4" aria-label="题目">
-            <div className="max-h-[50svh] w-full overflow-y-auto px-1 py-3 sm:px-2">
+          <section className="mt-3 min-h-0 flex-1 overflow-hidden" aria-label="题目">
+            <div className="h-full w-full overflow-y-auto overscroll-contain px-1 py-2 sm:px-2">
               <div className="flex flex-wrap items-start justify-center gap-x-0 gap-y-8">
                 {groupedTokens.map(({ item, tokens: itemTokens }) => (
                   <PracticeItemCells
@@ -360,7 +366,7 @@ export function PracticePage({
             </div>
           </section>
 
-          <section className="pb-2" aria-label="输入键盘">
+          <section className="shrink-0 pt-2" aria-label="输入键盘">
             <NineKeyKeyboard
               onBackspace={handleBackspace}
               onDigitPress={handleDigitPress}
