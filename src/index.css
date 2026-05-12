@@ -1,76 +1,32 @@
-:root {
-  --bg: #f6f4ee;
-  --surface: #fffdfa;
-  --paper: #f1efe8;
-  --text: #27231d;
-  --text-strong: #11100d;
-  --muted: #776f63;
-  --line: #ddd6c8;
-  --accent: #1f8a70;
-  --accent-strong: #116350;
-  --accent-soft: #dff2ec;
-  --success: #2d9c7c;
-  --focus: rgba(31, 138, 112, 0.3);
-  --key-bg: #fbfaf7;
-  --muted-soft: #ebe6dc;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+@import "tailwindcss";
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  min-width: 320px;
-  min-height: 100svh;
-  margin: 0;
-}
-
-#root {
-  min-height: 100svh;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --bg: #141511;
-    --surface: #1d1f1a;
-    --paper: #171914;
-    --text: #e9e2d6;
-    --text-strong: #fffaf1;
-    --muted: #aea698;
-    --line: #34372f;
-    --accent: #48bf9d;
-    --accent-strong: #7ce0c0;
-    --accent-soft: #17382f;
-    --success: #5bd0aa;
-    --focus: rgba(72, 191, 157, 0.32);
-    --key-bg: #22251f;
-    --muted-soft: #2a2d26;
+    font-family:
+      Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  .feedback.good,
-  .digit-target .matched,
-  .complete-banner {
-    color: #b8f3dd;
-    background: #123b30;
+  * {
+    box-sizing: border-box;
   }
 
-  .feedback.bad,
-  .digit-target .missed,
-  .weak-tags small {
-    color: #ffd3b5;
-    background: #4a2415;
+  body {
+    min-width: 320px;
+    min-height: 100svh;
+    margin: 0;
+    color: #020617;
+    background: #f8fafc;
   }
 
-  .feedback.done {
-    color: #c7d7ff;
-    background: #1d2d58;
+  button {
+    font: inherit;
+  }
+
+  #root {
+    min-height: 100svh;
   }
 }
