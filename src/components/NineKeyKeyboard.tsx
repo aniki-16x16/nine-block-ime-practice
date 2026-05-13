@@ -1,9 +1,12 @@
 import { useCallback } from "react";
 import { NINE_KEYS } from "../utils/nineKey";
 import { cx } from "../utils/className";
+import { triggerVibration } from "../utils/haptics";
+import type { VibrationIntensity } from "../utils/preferences";
 
 type NineKeyKeyboardProps = {
   disabled?: boolean;
+  vibrationIntensity: VibrationIntensity;
   onDigitPress: (digit: string) => void;
   onBackspace: () => void;
   onSpace: () => void;
@@ -12,7 +15,7 @@ type NineKeyKeyboardProps = {
 const keyByDigit = new Map(NINE_KEYS.map((key) => [key.digit, key]));
 
 const cellClass =
-  "h-[clamp(2.6rem,8vh,4.5rem)] rounded-lg border border-slate-300 bg-white text-slate-900 shadow-sm transition-[transform,box-shadow,background-color,border-color] duration-100 ease-out hover:border-sky-400 hover:bg-sky-50 active:translate-y-0.5 active:scale-[0.97] active:shadow-inner focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-45";
+  "h-[clamp(2.6rem,8vh,4.5rem)] rounded-lg border border-slate-300 bg-white text-slate-900 shadow-sm transition-[transform,box-shadow,background-color,border-color] duration-100 ease-out hover:border-sky-400 hover:bg-sky-50 active:translate-y-0.5 active:scale-[0.97] active:shadow-inner focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:shadow-none dark:hover:border-sky-500 dark:hover:bg-slate-800 dark:focus-visible:outline-sky-600";
 
 const keySoundSources = [
   "/soun1.mp3",
@@ -24,6 +27,7 @@ const keySoundSources = [
 
 export function NineKeyKeyboard({
   disabled = false,
+  vibrationIntensity,
   onDigitPress,
   onBackspace,
   onSpace,
@@ -37,10 +41,11 @@ export function NineKeyKeyboard({
 
   const handleKeyboardPress = useCallback(
     (action: () => void) => {
+      triggerVibration(vibrationIntensity);
       playRandomKeySound();
       action();
     },
-    [playRandomKeySound],
+    [playRandomKeySound, vibrationIntensity],
   );
 
   const renderDigit = (digit: string) => {
@@ -106,7 +111,7 @@ export function NineKeyKeyboard({
       <button
         className={cx(
           cellClass,
-          "col-span-3 px-2 text-sm font-black text-slate-700 sm:text-base",
+          "col-span-3 px-2 text-sm font-black text-slate-700 sm:text-base dark:text-slate-200",
         )}
         disabled={disabled}
         onClick={() => handleKeyboardPress(onSpace)}

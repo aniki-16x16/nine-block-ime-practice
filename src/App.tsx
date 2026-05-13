@@ -4,7 +4,18 @@ import { ITEM_BY_ID } from "./data/lessons";
 import type { TrainingItem } from "./data/lessons";
 import { LessonSelectPage } from "./pages/LessonSelectPage.tsx";
 import { PracticePage } from "./pages/PracticePage.tsx";
+import { SettingsPage } from "./pages/SettingsPage.tsx";
+import { triggerVibration } from "./utils/haptics";
 import { getAccuracy } from "./utils/practice";
+import type { VibrationIntensity } from "./utils/preferences";
+import {
+  applyThemeMode,
+  loadAppSettings,
+  loadThemeState,
+  saveAppSettings,
+  saveThemeMode,
+  SYSTEM_THEME_QUERY,
+} from "./utils/preferences";
 import {
   loadPracticeProgress,
   recordLessonCompleted,
@@ -15,6 +26,8 @@ import {
 
 function App() {
   const [progress, setProgress] = useState(loadPracticeProgress);
+  const [settings, setSettings] = useState(loadAppSettings);
+  const [themeState, setThemeState] = useState(loadThemeState);
   const weakItems = useMemo(
     () =>
       progress.weakItemIds
@@ -34,6 +47,45 @@ function App() {
   useEffect(() => {
     savePracticeProgress(progress);
   }, [progress]);
+
+  useEffect(() => {
+    saveAppSettings(settings);
+  }, [settings]);
+
+  useEffect(() => {
+    applyThemeMode(themeState.mode);
+  }, [themeState.mode]);
+
+  useEffect(() => {
+    if (
+      themeState.source !== "system" ||
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    ) {
+      return;
+    }
+
+    const systemThemeQuery = window.matchMedia(SYSTEM_THEME_QUERY);
+    const handleSystemThemeChange = (event: MediaQueryListEvent) => {
+      setThemeState({
+        mode: event.matches ? "dark" : "light",
+        source: "system",
+      });
+    };
+
+    systemThemeQuery.addEventListener("change", handleSystemThemeChange);
+
+    return () => {
+      systemThemeQuery.removeEventListener("change", handleSystemThemeChange);
+    };
+  }, [themeState.source]);
+
+  const handleToggleTheme = useCallback(() => {
+    const nextThemeMode = themeState.mode === "dark" ? "light" : "dark";
+
+    saveThemeMode(nextThemeMode);
+    setThemeState({ mode: nextThemeMode, source: "stored" });
+  }, [themeState.mode]);
 
   const handleRecordAttempt = useCallback(
     (
@@ -64,6 +116,23 @@ function App() {
     setProgress(resetPracticeProgress());
   }, []);
 
+  const handleChangeVibrationIntensity = useCallback(
+    (vibrationIntensity: VibrationIntensity) => {
+      setSettings((currentSettings) => ({
+        ...currentSettings,
+        vibrationIntensity,
+      }));
+    },
+    [],
+  );
+
+  const handlePreviewVibration = useCallback(
+    (vibrationIntensity: VibrationIntensity) => {
+      triggerVibration(vibrationIntensity);
+    },
+    [],
+  );
+
   return (
     <Routes>
       <Route
@@ -72,7 +141,9 @@ function App() {
           <LessonSelectPage
             averageTime={averageTime}
             onResetProgress={handleResetProgress}
+            onToggleTheme={handleToggleTheme}
             progress={progress}
+            themeMode={themeState.mode}
             totalAccuracy={totalAccuracy}
             weakItems={weakItems}
           />
@@ -84,6 +155,17 @@ function App() {
           <PracticePage
             onCompleteLesson={handleCompleteLesson}
             onRecordAttempt={handleRecordAttempt}
+            vibrationIntensity={settings.vibrationIntensity}
+          />
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <SettingsPage
+            onChangeVibrationIntensity={handleChangeVibrationIntensity}
+            onPreviewVibration={handlePreviewVibration}
+            vibrationIntensity={settings.vibrationIntensity}
           />
         }
       />

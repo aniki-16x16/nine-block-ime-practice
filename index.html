@@ -6,6 +6,27 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#f8fafc" />
+  <script>
+    (() => {
+      try {
+        const storedTheme = window.localStorage.getItem("nine-block-ime-theme-mode");
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+        const theme = storedTheme === "dark" || storedTheme === "light"
+          ? storedTheme
+          : systemTheme;
+
+        document.documentElement.classList.toggle("dark", theme === "dark");
+        document.documentElement.style.colorScheme = theme;
+        document
+          .querySelector('meta[name="theme-color"]')
+          ?.setAttribute("content", theme === "dark" ? "#020617" : "#f8fafc");
+      } catch {
+        document.documentElement.classList.remove("dark");
+      }
+    })();
+  </script>
   <title>nine-block-ime-practice</title>
 </head>
 

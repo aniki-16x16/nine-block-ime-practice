@@ -4,6 +4,7 @@ import { NineKeyKeyboard } from "../components/NineKeyKeyboard";
 import { LESSONS } from "../data/lessons";
 import type { LessonMode, TrainingItem } from "../data/lessons";
 import { formatDuration } from "../utils/nineKey";
+import type { VibrationIntensity } from "../utils/preferences";
 import {
   createPracticeTokens,
   getPreviousTokenIndexInItem,
@@ -19,6 +20,7 @@ type PracticePageProps = {
     correct: boolean,
     elapsedMs: number,
   ) => void;
+  vibrationIntensity: VibrationIntensity;
 };
 
 type RunStats = {
@@ -42,6 +44,7 @@ const getTokenElementId = (tokenId: string) => `practice-token-${tokenId}`;
 export function PracticePage({
   onCompleteLesson,
   onRecordAttempt,
+  vibrationIntensity,
 }: PracticePageProps) {
   const { lessonId } = useParams();
   const lesson = useMemo(
@@ -51,7 +54,10 @@ export function PracticePage({
   const practiceItems = useMemo(
     () =>
       lesson
-        ? createPracticeQueue(lesson.items, lesson.practiceSize ?? lesson.items.length)
+        ? createPracticeQueue(
+            lesson.items,
+            lesson.practiceSize ?? lesson.items.length,
+          )
         : [],
     [lesson],
   );
@@ -310,30 +316,31 @@ export function PracticePage({
         paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))",
       }}
     >
-      <header className="grid grid-cols-[2.75rem_1fr_2.75rem] items-center border-b border-slate-200 pb-3">
+      <header className="grid grid-cols-[2.75rem_1fr_2.75rem] items-center border-b border-slate-200 pb-3 dark:border-slate-800">
         <Link
           aria-label="返回课题"
-          className="grid h-11 w-11 place-items-center rounded-lg text-2xl font-black text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+          className="grid h-11 w-11 place-items-center rounded-lg text-2xl font-black text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-sky-300 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white dark:focus-visible:outline-sky-600"
           to="/"
         >
           ←
         </Link>
-        <h1 className="truncate text-center text-2xl font-black text-slate-950 sm:text-3xl">
+        <h1 className="truncate text-center text-2xl font-black text-slate-950 sm:text-3xl dark:text-slate-50">
           {lesson.title}
         </h1>
         <span aria-hidden="true" />
       </header>
 
       <section className="mt-3 shrink-0" aria-label="练习进度">
-        <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+        <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
           <div
             className="h-full rounded-full bg-sky-500 transition-all"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
-        <div className="mt-2 flex items-center justify-between text-sm font-bold text-slate-500">
+        <div className="mt-2 flex items-center justify-between text-sm font-bold text-slate-500 dark:text-slate-400">
           <span>
-            {Math.min(completedItemCount, practiceItems.length)} / {practiceItems.length}
+            {Math.min(completedItemCount, practiceItems.length)} /{" "}
+            {practiceItems.length}
           </span>
           <span>
             正确 {runStats.correct} · 错题 {runStats.wrong}
@@ -349,7 +356,10 @@ export function PracticePage({
         />
       ) : (
         <>
-          <section className="mt-3 min-h-0 flex-1 overflow-hidden" aria-label="题目">
+          <section
+            className="mt-3 min-h-0 flex-1 overflow-hidden"
+            aria-label="题目"
+          >
             <div className="h-full w-full overflow-y-auto overscroll-contain px-1 py-2 sm:px-2">
               <div className="flex flex-wrap items-start justify-center gap-x-0 gap-y-8">
                 {groupedTokens.map(({ item, tokens: itemTokens }) => (
@@ -371,6 +381,7 @@ export function PracticePage({
               onBackspace={handleBackspace}
               onDigitPress={handleDigitPress}
               onSpace={handleSpace}
+              vibrationIntensity={vibrationIntensity}
             />
           </section>
         </>
@@ -385,18 +396,14 @@ type VictorySummaryProps = {
   wrong: number;
 };
 
-function VictorySummary({
-  correct,
-  elapsedMs,
-  wrong,
-}: VictorySummaryProps) {
+function VictorySummary({ correct, elapsedMs, wrong }: VictorySummaryProps) {
   return (
     <section
       className="flex flex-1 items-center justify-center py-8 text-center"
       aria-label="完成结算"
     >
       <div className="w-full max-w-md">
-        <div className="relative mx-auto grid h-28 w-28 place-items-center rounded-full bg-emerald-100 text-emerald-800 shadow-inner">
+        <div className="relative mx-auto grid h-28 w-28 place-items-center rounded-full bg-emerald-100 text-emerald-800 shadow-inner dark:bg-emerald-950 dark:text-emerald-200">
           <span className="absolute left-1/2 top-0 h-5 w-1 -translate-x-1/2 -translate-y-3 rounded-full bg-sky-400" />
           <span className="absolute right-2 top-5 h-4 w-1 rotate-45 rounded-full bg-amber-400" />
           <span className="absolute bottom-3 right-0 h-5 w-1 rotate-90 rounded-full bg-rose-400" />
@@ -404,27 +411,33 @@ function VictorySummary({
           <span className="absolute left-0 top-8 h-5 w-1 rotate-90 rounded-full bg-amber-500" />
           <strong className="text-2xl font-black">完成</strong>
         </div>
-        <h2 className="mt-5 text-3xl font-black text-slate-950">课题完成</h2>
-        <p className="mt-2 text-sm font-bold text-slate-500">
+        <h2 className="mt-5 text-3xl font-black text-slate-950 dark:text-slate-50">
+          课题完成
+        </h2>
+        <p className="mt-2 text-sm font-bold text-slate-500 dark:text-slate-400">
           用时 {formatDuration(elapsedMs)} · 正确 {correct} · 错题 {wrong}
         </p>
         <div className="mt-6 grid grid-cols-2 gap-3 text-left">
-          <div className="rounded-lg border border-emerald-200 bg-white p-4">
-            <p className="text-sm font-bold text-slate-500">正确题项</p>
-            <strong className="mt-1 block text-2xl font-black text-emerald-700">
+          <div className="rounded-lg border border-emerald-200 bg-white p-4 dark:border-emerald-900 dark:bg-slate-900">
+            <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
+              正确题项
+            </p>
+            <strong className="mt-1 block text-2xl font-black text-emerald-700 dark:text-emerald-300">
               {correct}
             </strong>
           </div>
-          <div className="rounded-lg border border-rose-200 bg-white p-4">
-            <p className="text-sm font-bold text-slate-500">错题回收</p>
-            <strong className="mt-1 block text-2xl font-black text-rose-700">
+          <div className="rounded-lg border border-rose-200 bg-white p-4 dark:border-rose-900 dark:bg-slate-900">
+            <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
+              错题回收
+            </p>
+            <strong className="mt-1 block text-2xl font-black text-rose-700 dark:text-rose-300">
               {wrong}
             </strong>
           </div>
         </div>
         <div className="mt-6 flex justify-center">
           <Link
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-slate-300"
+            className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-slate-300 dark:bg-sky-500 dark:text-slate-950 dark:hover:bg-sky-400 dark:focus-visible:outline-sky-700"
             to="/"
           >
             返回课题
@@ -460,7 +473,9 @@ function PracticeItemCells({
 }: PracticeItemCellsProps) {
   const charTokens = itemTokens.filter((token) => token.kind === "char");
   const spaceToken = itemTokens.find((token) => token.kind === "space");
-  const syllableIndexes = [...new Set(charTokens.map((token) => token.syllableIndex))];
+  const syllableIndexes = [
+    ...new Set(charTokens.map((token) => token.syllableIndex)),
+  ];
 
   return (
     <div className="inline-flex items-start gap-0">
@@ -515,7 +530,7 @@ function SyllableCells({
   return (
     <span className="inline-grid justify-items-center gap-1">
       {lessonMode === "hanzi" && (
-        <span className="grid h-5 place-items-center text-base font-black leading-5 text-slate-900/35 sm:h-6 sm:text-lg sm:leading-6">
+        <span className="grid h-5 place-items-center text-base font-black leading-5 text-slate-900/35 sm:h-6 sm:text-lg sm:leading-6 dark:text-slate-100/35">
           {hanzi ?? ""}
         </span>
       )}
@@ -553,11 +568,13 @@ function TokenCell({
           aria-label="空格"
           id={getTokenElementId(token.id)}
           className={cx(
-            "mx-2 h-10 w-5 rounded-md border bg-teal-50 transition sm:h-11 sm:w-6",
-            isCorrect && "border-teal-400 bg-teal-100",
-            isWrong && "border-rose-400 bg-rose-50",
-            !result && isActive && "border-sky-500 bg-sky-200 ring-2 ring-sky-300",
-            !result && !isActive && "border-slate-200",
+            "mx-2 h-10 w-5 rounded-md border bg-teal-50 transition sm:h-11 sm:w-6 dark:bg-teal-950/40",
+            isCorrect && "border-teal-400 bg-teal-100 dark:bg-teal-900/70",
+            isWrong && "border-rose-400 bg-rose-50 dark:bg-rose-950/70",
+            !result &&
+              isActive &&
+              "border-sky-500 bg-sky-200 ring-2 ring-sky-300 dark:bg-sky-900 dark:ring-sky-700",
+            !result && !isActive && "border-slate-200 dark:border-slate-700",
           )}
         />
         <span className="h-4" />
@@ -566,22 +583,29 @@ function TokenCell({
   }
 
   return (
-    <span className="inline-grid justify-items-center gap-1" title={token.pinyin}>
+    <span
+      className="inline-grid justify-items-center gap-1"
+      title={token.pinyin}
+    >
       <span
         id={getTokenElementId(token.id)}
         className={cx(
-          "grid h-10 w-7 place-items-center rounded-md border bg-white text-base font-black leading-none tracking-normal transition sm:h-11 sm:w-8 sm:text-lg",
-          isCorrect && "border-emerald-400 bg-emerald-50 text-emerald-800",
-          isWrong && "border-rose-400 bg-rose-50 text-rose-800",
+          "grid h-10 w-7 place-items-center rounded-md border bg-white text-base font-black leading-none tracking-normal transition sm:h-11 sm:w-8 sm:text-lg dark:bg-slate-900",
+          isCorrect &&
+            "border-emerald-400 bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
+          isWrong &&
+            "border-rose-400 bg-rose-50 text-rose-800 dark:bg-rose-950 dark:text-rose-200",
           !result &&
             isActive &&
-            "border-sky-500 text-sky-950 ring-2 ring-sky-300",
-          !result && !isActive && "border-slate-200 text-slate-900",
+            "border-sky-500 text-sky-950 ring-2 ring-sky-300 dark:text-sky-100 dark:ring-sky-700",
+          !result &&
+            !isActive &&
+            "border-slate-200 text-slate-900 dark:border-slate-700 dark:text-slate-100",
         )}
       >
         {token.label}
       </span>
-      <span className="h-4 text-xs font-black leading-4 text-sky-700">
+      <span className="h-4 text-xs font-black leading-4 text-sky-700 dark:text-sky-300">
         {isActive ? currentInput : ""}
       </span>
     </span>
