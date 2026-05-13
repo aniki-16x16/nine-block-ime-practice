@@ -140,7 +140,6 @@ function App() {
         element={
           <LessonSelectPage
             averageTime={averageTime}
-            onResetProgress={handleResetProgress}
             onToggleTheme={handleToggleTheme}
             progress={progress}
             themeMode={themeState.mode}
@@ -165,6 +164,7 @@ function App() {
           <SettingsPage
             onChangeVibrationIntensity={handleChangeVibrationIntensity}
             onPreviewVibration={handlePreviewVibration}
+            onResetProgress={handleResetProgress}
             vibrationIntensity={settings.vibrationIntensity}
           />
         }

@@ -4,6 +4,7 @@ import { NineKeyKeyboard } from "../components/NineKeyKeyboard";
 import { LESSONS } from "../data/lessons";
 import type { LessonMode, TrainingItem } from "../data/lessons";
 import { formatDuration } from "../utils/nineKey";
+import { triggerVibration } from "../utils/haptics";
 import type { VibrationIntensity } from "../utils/preferences";
 import {
   createPracticeTokens,
@@ -77,6 +78,7 @@ export function PracticePage({
   const itemStartedAtRef = useRef(0);
   const currentItemHasMistakeRef = useRef(false);
   const completedItemIndicesRef = useRef(new Set<number>());
+  const successFeedbackPlayedRef = useRef(false);
 
   const activeToken = tokens[currentTokenIndex];
   const completedItemCount = runStats.correct + runStats.wrong;
@@ -107,6 +109,20 @@ export function PracticePage({
       inline: "nearest",
     });
   }, [activeToken, isRunComplete]);
+
+  useEffect(() => {
+    if (!isRunComplete || successFeedbackPlayedRef.current) {
+      return;
+    }
+
+    successFeedbackPlayedRef.current = true;
+
+    const successAudio = new Audio("/success.mp3");
+    successAudio.volume = 0.8;
+    void successAudio.play().catch(() => undefined);
+
+    triggerVibration(2);
+  }, [isRunComplete]);
 
   const ensureTimers = useCallback(() => {
     const now = performance.now();

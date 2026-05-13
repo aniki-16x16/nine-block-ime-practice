@@ -1,3 +1,7 @@
+import { NavigationBar } from "@capgo/capacitor-navigation-bar";
+import { Capacitor } from "@capacitor/core";
+import { StatusBar, Style } from "@capacitor/status-bar";
+
 export type ThemeMode = "light" | "dark";
 export type ThemePreferenceSource = "stored" | "system";
 
@@ -17,6 +21,10 @@ export const SYSTEM_THEME_QUERY = "(prefers-color-scheme: dark)";
 
 const THEME_STORAGE_KEY = "nine-block-ime-theme-mode";
 const SETTINGS_STORAGE_KEY = "nine-block-ime-settings-v1";
+const THEME_COLORS = {
+  dark: "#020617",
+  light: "#f8fafc",
+} as const;
 
 const createDefaultSettings = (): AppSettings => ({
   version: 1,
@@ -67,11 +75,35 @@ export const applyThemeMode = (themeMode: ThemeMode) => {
     return;
   }
 
+  const themeColor = themeMode === "dark" ? THEME_COLORS.dark : THEME_COLORS.light;
+
   document.documentElement.classList.toggle("dark", themeMode === "dark");
   document.documentElement.style.colorScheme = themeMode;
   document
     .querySelector<HTMLMetaElement>('meta[name="theme-color"]')
-    ?.setAttribute("content", themeMode === "dark" ? "#020617" : "#f8fafc");
+    ?.setAttribute("content", themeColor);
+
+  void syncNativeSystemBars(themeMode, themeColor);
+};
+
+const syncNativeSystemBars = async (
+  themeMode: ThemeMode,
+  themeColor: string,
+) => {
+  if (!Capacitor.isNativePlatform()) {
+    return;
+  }
+
+  const isDarkTheme = themeMode === "dark";
+
+  await Promise.allSettled([
+    StatusBar.setStyle({ style: isDarkTheme ? Style.Dark : Style.Light }),
+    StatusBar.setBackgroundColor({ color: themeColor }),
+    NavigationBar.setNavigationBarColor({
+      color: themeColor,
+      darkButtons: !isDarkTheme,
+    }),
+  ]);
 };
 
 export const loadAppSettings = (): AppSettings => {

@@ -9,7 +9,6 @@ import type { PracticeProgress } from "../utils/storage";
 
 type LessonSelectPageProps = {
   averageTime: number;
-  onResetProgress: () => void;
   onToggleTheme: () => void;
   progress: PracticeProgress;
   themeMode: ThemeMode;
@@ -21,7 +20,6 @@ const LESSON_LIST_SCROLL_KEY = "nine-block-ime-lesson-list-scroll-y";
 
 export function LessonSelectPage({
   averageTime,
-  onResetProgress,
   onToggleTheme,
   progress,
   themeMode,
@@ -121,13 +119,6 @@ export function LessonSelectPage({
             </Link>
           </div>
         </div>
-        <button
-          className="mt-3 h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-rose-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:shadow-none dark:hover:border-rose-700 dark:hover:bg-rose-950/40 dark:hover:text-rose-300 dark:focus-visible:outline-rose-900 sm:float-right sm:mt-0"
-          onClick={onResetProgress}
-          type="button"
-        >
-          清空数据
-        </button>
       </header>
 
       <section
