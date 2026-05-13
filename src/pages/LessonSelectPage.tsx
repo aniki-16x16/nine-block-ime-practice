@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { LESSONS } from "../data/lessons";
 import type { TrainingItem } from "../data/lessons";
@@ -13,6 +14,8 @@ type LessonSelectPageProps = {
   weakItems: TrainingItem[];
 };
 
+const LESSON_LIST_SCROLL_KEY = "nine-block-ime-lesson-list-scroll-y";
+
 export function LessonSelectPage({
   averageTime,
   onResetProgress,
@@ -20,6 +23,54 @@ export function LessonSelectPage({
   totalAccuracy,
   weakItems,
 }: LessonSelectPageProps) {
+  useEffect(() => {
+    const storedTop = window.sessionStorage.getItem(LESSON_LIST_SCROLL_KEY);
+
+    if (!storedTop) {
+      return;
+    }
+
+    const nextTop = Number.parseFloat(storedTop);
+
+    if (!Number.isFinite(nextTop)) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: nextTop, behavior: "auto" });
+    });
+  }, []);
+
+  useEffect(() => {
+    let frameId: number | null = null;
+
+    const persistScrollTop = () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+
+      frameId = window.requestAnimationFrame(() => {
+        window.sessionStorage.setItem(
+          LESSON_LIST_SCROLL_KEY,
+          String(window.scrollY),
+        );
+        frameId = null;
+      });
+    };
+
+    persistScrollTop();
+    window.addEventListener("scroll", persistScrollTop, { passive: true });
+
+    return () => {
+      persistScrollTop();
+      window.removeEventListener("scroll", persistScrollTop);
+
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, []);
+
   const lessonGroups = [
     {
       title: "拼音练习",
@@ -86,22 +137,21 @@ export function LessonSelectPage({
                       key={lesson.id}
                       to={`/practice/${lesson.id}`}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-xs font-black text-sky-700">
-                            {lesson.level}
-                          </p>
-                          <h3 className="mt-0.5 truncate text-base font-black text-slate-950">
-                            {lesson.title}
-                          </h3>
-                          <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
-                            {lesson.focus}
-                          </p>
-                        </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-black text-sky-700">
+                          {lesson.level}
+                        </p>
                         <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-black text-slate-600">
                           {practiceSize} 题
                         </span>
                       </div>
+
+                      <h3 className="mt-1.5 text-base font-black text-slate-950">
+                        {lesson.title}
+                      </h3>
+                      <p className="mt-1 text-xs font-medium text-slate-500">
+                        {lesson.focus}
+                      </p>
 
                       <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
                         <span className="font-bold text-slate-500">

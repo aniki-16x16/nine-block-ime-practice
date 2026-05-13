@@ -70,7 +70,7 @@ export function NineKeyKeyboard({
 
   return (
     <div
-      className="mx-auto grid w-full max-w-xl grid-cols-5 gap-1.5 sm:gap-2"
+      className="mx-auto grid w-full max-w-xl grid-cols-[0.7fr_1fr_1fr_1fr_0.7fr] gap-1.5 sm:gap-2"
       aria-label="九宫格键盘"
     >
       <button
